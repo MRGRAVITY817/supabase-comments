@@ -2,6 +2,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { createClient } from "@supabase/supabase-js";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ReplyIcon, PencilIcon, TrashIcon, CheckCircleIcon, XCircleIcon, XIcon } from "@heroicons/react/outline";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL + "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY + "";
@@ -119,11 +120,14 @@ const Home: NextPage = () => {
             <div className="w-full">
               {replyOf && (
                 <div className="flex gap-4 my-2 items-center justify-start">
-                  <p className="text-xs font-extralight italic text-gray-600">
-                    Reply of: {commentList.find((comment) => comment.id === replyOf)?.payload ?? ""}
-                  </p>
-                  <button onClick={() => setReplyOf(null)} className="text-xs font-light text-red-600">
-                    Cancel
+                  <div className="flex items-center justify-start gap-2">
+                    <ReplyIcon className="w-4 text-gray-600 rotate-180" />
+                    <p className="font-extralight italic text-gray-600 text-sm">
+                      {commentList.find((comment) => comment.id === replyOf)?.payload ?? ""}
+                    </p>
+                  </div>
+                  <button onClick={() => setReplyOf(null)} title="Cancel">
+                    <XIcon className="w-4 text-gray-600" />
                   </button>
                 </div>
               )}
@@ -148,9 +152,12 @@ const Home: NextPage = () => {
               .map((comment) => (
                 <div key={comment.id} className="border rounded-md p-4">
                   {comment.reply_of && (
-                    <p className="font-extralight italic text-gray-600 text-xs">
-                      Reply of: {commentList.find((c) => c.id === comment.reply_of)?.payload ?? ""}
-                    </p>
+                    <div className="flex items-center justify-start gap-2">
+                      <ReplyIcon className="w-3 text-gray-600 rotate-180" />
+                      <p className="font-extralight italic text-gray-600 text-xs">
+                        {commentList.find((c) => c.id === comment.reply_of)?.payload ?? ""}
+                      </p>
+                    </div>
                   )}
                   <p className="font-semibold mb-2">
                     {comment.username}
@@ -176,34 +183,31 @@ const Home: NextPage = () => {
                             type="button"
                             onClick={confirmEdit}
                             disabled={editComment.payload === comment.payload}
-                            className={`${
-                              editComment.payload === comment.payload ? `text-gray-300` : `text-green-500`
-                            }`}
+                            title="Confirm"
                           >
-                            Confirm
+                            <CheckCircleIcon
+                              className={`${
+                                editComment.payload === comment.payload ? `text-gray-300` : `text-green-500`
+                              } w-6`}
+                            />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditComment({ id: "", payload: "" })}
-                            className="text-gray-500"
-                          >
-                            Cancel
+                          <button type="button" onClick={() => setEditComment({ id: "", payload: "" })} title="Cancel">
+                            <XCircleIcon className="w-6 text-gray-600" />
                           </button>
                         </>
                       ) : (
                         <>
                           <button
-                            type="button"
                             onClick={() => setEditComment({ id: comment.id, payload: comment.payload })}
-                            className="text-green-500"
+                            title="Edit comment"
                           >
-                            Edit
+                            <PencilIcon className="w-6" />
                           </button>
-                          <button type="button" onClick={() => confirmDelete(comment.id)} className="text-gray-700">
-                            Delete
+                          <button onClick={() => confirmDelete(comment.id)} title="Delete comment">
+                            <TrashIcon className="w-6" />
                           </button>
-                          <button type="button" onClick={() => setReplyOf(comment.id)} className="text-orange-500">
-                            Reply
+                          <button onClick={() => setReplyOf(comment.id)} title="Reply to comment">
+                            <ReplyIcon className="w-6 rotate-180" />
                           </button>
                         </>
                       )}
