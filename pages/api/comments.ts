@@ -17,7 +17,7 @@ const CommentsApi = async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(200).json(getData);
     // Add comment
     case "POST":
-      const { comment } = req.body;
+      const comment = req.body;
       const { data: postData, error: postError } = await supabase.from("comments").insert(comment);
       if (postError) {
         return res.status(500).json({ message: postError.message });

@@ -1,9 +1,9 @@
 import type { NextPage } from "next";
 import Head from "next/head";
 import { createClient } from "@supabase/supabase-js";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import { ReplyIcon, PencilIcon, TrashIcon, CheckCircleIcon, XCircleIcon, XIcon } from "@heroicons/react/outline";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL + "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY + "";
@@ -24,12 +24,29 @@ interface EditCommentParams {
   payload: string;
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetch(url, { method: "GET" }).then((res) => res.json());
+
+const addCommentRequest = (url: string, data: any) =>
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).then((res) => res.json());
+
+const editCommentRequest = (url: string, data: any) =>
+  fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).then((res) => res.json());
 
 const Home: NextPage = () => {
   const { data: commentList, error: commentListError } = useSWR<CommentParams[]>("/api/comments", fetcher);
   const [comment, setComment] = useState<string>("");
-  const [editComment, setEditComment] = useState<EditCommentParams>({ id: "", payload: "" });
+  const [editComment, setEditComment] = useState<EditCommentParams>({
+    id: "",
+    payload: "",
+  });
   const [replyOf, setReplyOf] = useState<string | null>(null);
 
   const onChangeEditComment = (event: ChangeEvent<HTMLInputElement>) => {
@@ -38,17 +55,27 @@ const Home: NextPage = () => {
   };
 
   const confirmEdit = async () => {
-    const { data, error } = await supabase
-      .from("comments")
-      .update({
-        payload: editComment.payload,
-        updated_at: new Date(),
-      })
-      .match({ id: editComment.id });
-    if (!error && data) {
-      window.alert("Edited Comment!");
-    } else {
-      window.alert(error?.message);
+    const editData = {
+      payload: editComment.payload,
+      commentId: editComment.id,
+    };
+    if (typeof commentList !== "undefined") {
+      mutate(
+        "api/comments",
+        commentList.map((comment) => {
+          if (comment.id === editData.commentId) {
+            return { ...comment, payload: editData.payload };
+          }
+        }),
+        false
+      );
+      const response = await editCommentRequest("api/comments", editData);
+      console.log(response);
+      if (response[0].created_at) {
+        mutate("api/comments");
+        window.alert("Hooray!");
+        setEditComment({ id: "", payload: "" });
+      }
     }
   };
 
@@ -66,15 +93,19 @@ const Home: NextPage = () => {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const { data, error } = await supabase.from("comments").insert({
+    const newComment = {
       username: "hoonwee@email.com",
       payload: comment,
       reply_of: replyOf,
-    });
-    if (!error && data) {
-      window.alert("Hooray!");
-    } else {
-      window.alert(error?.message);
+    };
+    if (typeof commentList !== "undefined") {
+      mutate("api/comments", [...commentList, newComment], false);
+      const response = await addCommentRequest("api/comments", newComment);
+      if (response[0].created_at) {
+        mutate("api/comments");
+        window.alert("Hooray!");
+        setComment("");
+      }
     }
   };
 
@@ -108,6 +139,7 @@ const Home: NextPage = () => {
               )}
               <input
                 onChange={onChange}
+                value={comment}
                 type="text"
                 placeholder="Add a comment"
                 className="p-2 border-b focus:border-b-gray-700 w-full outline-none"
@@ -173,7 +205,12 @@ const Home: NextPage = () => {
                       ) : (
                         <>
                           <button
-                            onClick={() => setEditComment({ id: comment.id, payload: comment.payload })}
+                            onClick={() =>
+                              setEditComment({
+                                id: comment.id,
+                                payload: comment.payload,
+                              })
+                            }
                             title="Edit comment"
                           >
                             <PencilIcon className="w-6" />
