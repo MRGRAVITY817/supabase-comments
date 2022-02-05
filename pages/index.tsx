@@ -9,21 +9,6 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY + "";
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-export const getNumericDate = (date: Date) => {
-  const day = date.getDate();
-  const month = date.getMonth();
-  const year = date.getFullYear();
-  const bigHour = (day + month * 12 + year * 365) * 24;
-
-  const hour = date.getHours();
-  const minute = date.getMinutes();
-  const second = date.getSeconds();
-  const ms = date.getMilliseconds();
-  const smallHour = (ms * 0.001 + second + minute * 60 + hour * 3600) / 3600;
-
-  return bigHour + smallHour;
-};
-
 interface CommentParams {
   id: string;
   created_at: string;
@@ -147,7 +132,7 @@ const Home: NextPage = () => {
               .sort((a, b) => {
                 const aDate = new Date(a.created_at);
                 const bDate = new Date(b.created_at);
-                return getNumericDate(aDate) - getNumericDate(bDate);
+                return +aDate - +bDate;
               })
               .map((comment) => (
                 <div key={comment.id} className="border rounded-md p-4">
