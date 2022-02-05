@@ -3,6 +3,7 @@ import Head from "next/head";
 import { createClient } from "@supabase/supabase-js";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { ReplyIcon, PencilIcon, TrashIcon, CheckCircleIcon, XCircleIcon, XIcon } from "@heroicons/react/outline";
+import useSWR from "swr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL + "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY + "";
@@ -23,9 +24,11 @@ interface EditCommentParams {
   payload: string;
 }
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 const Home: NextPage = () => {
+  const { data: commentList, error: commentListError } = useSWR<CommentParams[]>("/api/comments", fetcher);
   const [comment, setComment] = useState<string>("");
-  const [commentList, setCommentList] = useState<CommentParams[]>([]);
   const [editComment, setEditComment] = useState<EditCommentParams>({ id: "", payload: "" });
   const [replyOf, setReplyOf] = useState<string | null>(null);
 
@@ -61,19 +64,6 @@ const Home: NextPage = () => {
     }
   };
 
-  const getCommentList = async () => {
-    const { data, error } = await supabase.from("comments").select("*");
-    if (!error && data) {
-      setCommentList(data);
-    } else {
-      setCommentList([]);
-    }
-  };
-
-  useEffect(() => {
-    getCommentList();
-  }, []);
-
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const { data, error } = await supabase.from("comments").insert({
@@ -108,7 +98,7 @@ const Home: NextPage = () => {
                   <div className="flex items-center justify-start gap-2">
                     <ReplyIcon className="w-4 text-gray-600 rotate-180" />
                     <p className="font-extralight italic text-gray-600 text-sm">
-                      {commentList.find((comment) => comment.id === replyOf)?.payload ?? ""}
+                      {commentList?.find((comment) => comment.id === replyOf)?.payload ?? ""}
                     </p>
                   </div>
                   <button onClick={() => setReplyOf(null)} title="Cancel">
@@ -128,7 +118,7 @@ const Home: NextPage = () => {
             </button>
           </form>
           <div className="flex flex-col gap-4 pt-12">
-            {commentList
+            {(commentList ?? [])
               .sort((a, b) => {
                 const aDate = new Date(a.created_at);
                 const bDate = new Date(b.created_at);
@@ -140,7 +130,7 @@ const Home: NextPage = () => {
                     <div className="flex items-center justify-start gap-2">
                       <ReplyIcon className="w-3 text-gray-600 rotate-180" />
                       <p className="font-extralight italic text-gray-600 text-xs">
-                        {commentList.find((c) => c.id === comment.reply_of)?.payload ?? ""}
+                        {commentList?.find((c) => c.id === comment.reply_of)?.payload ?? ""}
                       </p>
                     </div>
                   )}
