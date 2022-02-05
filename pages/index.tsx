@@ -39,7 +39,6 @@ const Home: NextPage = () => {
       .from("comments")
       .update({
         payload: editComment.payload,
-        updated_at: new Date(),
       })
       .match({ id: editComment.id });
     if (!error && data) {
