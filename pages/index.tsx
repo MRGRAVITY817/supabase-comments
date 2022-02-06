@@ -40,6 +40,9 @@ const editCommentRequest = (url: string, data: any) =>
     body: JSON.stringify(data),
   }).then((res) => res.json());
 
+const deleteCommentRequest = (url: string, id: string) =>
+  fetch(`${url}?comment_id=${id}`, { method: "DELETE" }).then((res) => res.json());
+
 const Home: NextPage = () => {
   const { data: commentList, error: commentListError } = useSWR<CommentParams[]>("/api/comments", fetcher);
   const [comment, setComment] = useState<string>("");
@@ -70,7 +73,6 @@ const Home: NextPage = () => {
         false
       );
       const response = await editCommentRequest("api/comments", editData);
-      console.log(response);
       if (response[0].created_at) {
         mutate("api/comments");
         window.alert("Hooray!");
@@ -81,12 +83,16 @@ const Home: NextPage = () => {
 
   const confirmDelete = async (id: string) => {
     const ok = window.confirm("Delete comment?");
-    if (ok) {
-      const { data, error } = await supabase.from("comments").delete().match({ id });
-      if (!error && data) {
+    if (ok && typeof commentList !== "undefined") {
+      mutate(
+        "api/comments",
+        commentList.filter((comment) => comment.id !== id),
+        false
+      );
+      const response = await deleteCommentRequest("api/comments", id);
+      if (response[0].created_at) {
+        mutate("api/comments");
         window.alert("Deleted Comment :)");
-      } else {
-        window.alert(error?.message);
       }
     }
   };
